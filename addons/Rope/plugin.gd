@@ -1,8 +1,6 @@
 tool
 extends EditorPlugin
 
-
-var is_godot21
 var edited_object = null
 var editor = null
 
@@ -33,10 +31,11 @@ const COLOR_1 = Color(1, 1, 1, 1)
 const COLOR_2 = Color(0.5, 0.5, 1, 1)
 const COLOR_3 = Color(1, 0, 0, 1)
 
+func get_name(): 
+	return "rope"
+
 func _enter_tree():
-    var godot_version = OS.get_engine_version()
-    is_godot21 = godot_version.major == "2" && godot_version.minor == "1"
-    add_custom_type("Rope", "Node2D", preload("rope.gd"), preload("icon.png"))
+    add_custom_type("Rope", "Line2D", preload("rope.gd"), preload("icon.png"))
 
     handle_tex.set_flags(0)
     add_tex.set_flags(0)
@@ -59,15 +58,13 @@ func edit(o):
     edited_object = o
 
 func make_visible(b):
-	print(b)
 	if b:
-		if is_godot21:
-			if editor == null:
-				var viewport = edited_object.get_viewport()
-				editor = curve_editor_script.new()
-				editor.plugin = self
-				viewport.add_child(editor)
-				viewport.connect("size_changed", editor, "update")
+		if editor == null:
+			var viewport = edited_object.get_viewport()
+			editor = curve_editor_script.new()
+			editor.plugin = self
+			viewport.add_child(editor)
+			viewport.connect("size_changed", editor, "update")
 		update()
 	else:
 		if editor != null:
@@ -79,10 +76,7 @@ func int_coord(p):
 	return Vector2(round(p.x), round(p.y))
 
 func update():
-	if is_godot21:
-		editor.update()
-	else:
-		update_canvas()
+	editor.update()
 
 func forward_draw_over_canvas(canvas_xform, canvas):
     var transform = canvas_xform * edited_object.get_global_transform()
@@ -99,8 +93,8 @@ func forward_draw_over_canvas(canvas_xform, canvas):
             canvas.draw_texture_rect(handle_tex, Rect2(int_coord(p_in) - Vector2(5, 5), Vector2(11, 11)), false)
             handles.append({ pos = p_in, mode = HANDLE_IN, index = i })
         if(i < pointsCount - 1):
-            canvas.draw_texture_rect(handle_tex, Rect2(int_coord(p_out) - Vector2(5, 5), Vector2(11, 11)), false)
             canvas.draw_line(p, p_out, COLOR_2)
+            canvas.draw_texture_rect(handle_tex, Rect2(int_coord(p_out) - Vector2(5, 5), Vector2(11, 11)), false)
             handles.append({ pos = p_out, mode = HANDLE_OUT, index = i })
 
         canvas.draw_texture_rect(handle_tex, Rect2(int_coord(p) - Vector2(5, 5), Vector2(11, 11)), false)
@@ -125,11 +119,11 @@ func forward_draw_over_canvas(canvas_xform, canvas):
             buttons.append({ rect = button_rect, type = BUTTON_REMOVE, index = i })
 
 func forward_canvas_input_event(canvas_xform, event):
-    if event.type == InputEvent.MOUSE_BUTTON:
+    if event is InputEventMouseButton:
         if event.button_index == BUTTON_LEFT:
             if event.is_pressed():
                 for b in buttons:
-                    if b.rect.has_point(event.pos):
+                    if b.rect.has_point(event.position):
                         if b.type == BUTTON_ADD:
                             # Clicked on an "add" button
                             var p_0 = edited_object.get_point_pos(b.index)
@@ -175,7 +169,7 @@ func forward_canvas_input_event(canvas_xform, event):
                         edited_object.update()
                         return true
                 for h in handles:
-                    if (event.pos - h.pos).length() < 6:
+                    if (event.position - h.pos).length() < 6:
                         # Activate handle
                         handle_mode = h.mode
                         handle_index = h.index
@@ -204,10 +198,10 @@ func forward_canvas_input_event(canvas_xform, event):
                 undoredo.commit_action()
                 handle_mode = HANDLE_NONE
                 return true
-    elif event.type == InputEvent.MOUSE_MOTION && handle_mode != HANDLE_NONE:
+    elif event is InputEventMouseMotion && handle_mode != HANDLE_NONE:
         var transform_inv = edited_object.get_global_transform().affine_inverse()
         var viewport_transform_inv = edited_object.get_viewport().get_global_canvas_transform().affine_inverse()
-        var p = transform_inv.xform(viewport_transform_inv.xform(event.pos))
+        var p = transform_inv.xform(viewport_transform_inv.xform(event.position))
         if handle_mode == HANDLE_POS:
             edited_object.set_point_pos(handle_index, p)
         elif handle_mode == HANDLE_IN:
@@ -219,9 +213,7 @@ func forward_canvas_input_event(canvas_xform, event):
         return true
     update()
 
-
-# Godot 2.1
-func forward_input_event(event):
+func forward_canvas_gui_input(event):
     if editor == null:
         return false
     return forward_canvas_input_event(editor.get_viewport().get_global_canvas_transform(), event)

@@ -18,3 +18,6 @@ the small pin icon (if it's red it means it is pined). By default the first is p
 
 
 [Demo youtube video](https://youtu.be/TYSG07SOMr8)
+
+Originally written by Vladimir Stoilov (https://github.com/vlabo/Godot_rope_addon),
+ported to Godot 3 (using Line2D) by Tomáš "brendor" Kováč (https://github.com/brendor/godot3_rope).
